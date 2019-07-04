@@ -1,0 +1,56 @@
+# https://docs.gitea.io/en-us/install-with-docker/
+version: "3.7"
+
+services:
+  gitea:
+    image: gitea/gitea:latest
+    environment:
+      - APP_NAME=Gitea
+      - USER_UID=1000
+      - USER_GID=1000
+      - ROOT_URL=https://gitea.${DOMAIN:-localhost}
+      - SSH_DOMAIN=gitea.${DOMAIN:-localhost}
+      - SSH_PORT=2222
+      - HTTP_PORT=3000
+      - DB_TYPE=postgres
+      - DB_HOST=gitea-db:5432
+      - DB_NAME=gitea
+      - DB_USER=postgres
+      - DB_PASSWD=postgres
+    volumes:
+      - gitea_app:/data
+    ports:
+      - "2222:22"
+    networks:
+      - public
+      - private
+    deploy:
+      labels:
+        - "traefik.docker.network=public"
+        - "traefik.port=3000"
+        - "traefik.backend=gitea"
+        - "traefik.enable=true"
+        - "traefik.frontend.rule=Host:gitea.${DOMAIN:-localhost}"
+        - "traefik.frontend.headers.SSLRedirect=true"
+        - "traefik.frontend.entryPoints=http,https"
+
+  gitea-db:
+    image: postgres:alpine
+    volumes:
+      - gitea_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=gitea
+    networks:
+      - private
+
+volumes:
+  gitea_app: {}
+  gitea_db: {}
+
+networks:
+  public:
+    external: true
+  private:
+    external: true
